@@ -182,19 +182,31 @@ main (int argc, char *argv[])
 // DataRate = 1Mbps 
 // 1Mbps 512kbps 
 
-//FOR clientApp
 
-//Falta flow monitor
+// Flow monitor
+Ptr<FlowMonitor> flowMonitor;
+FlowMonitorHelper flowHelper;
+flowMonitor = flowHelper.InstallAll();
+
+Simulator::Stop (Seconds(10));
+Simulator::Run ();
+
+flowMonitor->SerializeToXmlFile("MO655Maria.xml", true, true);
 
 //Tipos de trafego
 
-  ApplicationContainer clientApps = echoClient.Install (wifiStaNodes.Get (nWifi - 1));
-  clientApps.Start (Seconds (2.0));
-  clientApps.Stop (Seconds (10.0));
+//##################
+//FOR clientApp
+  
+   for (int i=1; i < 10; i++)
+   { 
 
-  ApplicationContainer clientApps2 = echoClient.Install (wifiStaNodes.Get (nWifi - 2));
-  clientApps2.Start (Seconds (2.0));
-  clientApps2.Stop (Seconds (10.0));
+    ApplicationContainer clientApps = echoClient.Install (wifiStaNodes.Get (nWifi - i));
+    clientApps.Start (Seconds (2.0));
+    clientApps.Stop (Seconds (10.0));
+    
+   }
+//##################
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
