@@ -35,10 +35,10 @@
 //                 AP
 //  *    *    *    *
 //  |    |    |    |    10.1.1.0
-// n5   n6   n7   n0 -------------- n1   n2   n3   n4
-//                   point-to-point  |    |    |    |
-//                                   ================
-//                                     LAN 10.1.2.0
+// n5   n6   n7   n0 -------------- n1   n2   
+//                   point-to-point  |    |    
+//                                   ======
+//                                LAN 10.1.2.0
 
 using namespace ns3;
 
@@ -58,9 +58,10 @@ int myRand(int min, int max){
 int 
 main (int argc, char *argv[])
 {
+  int no = 40; // Variável "no" que define o número de nós Ex: 10..20..30..40
   bool verbose = false;
   uint32_t nCsma = 1;
-  uint32_t nWifi = 10;
+  uint32_t nWifi = ((no * 20) / 100); //nWifi recebe o resultado da porcentagem de 20% em relação ao número de Nós
   bool tracing = false;
 
   CommandLine cmd;
@@ -167,7 +168,7 @@ main (int argc, char *argv[])
   address.Assign (staDevices);
   address.Assign (apDevices);
 
-  UdpEchoServerHelper echoServer (9);
+  UdpEchoServerHelper echoServer (9);//
 
   ApplicationContainer serverApps = echoServer.Install (csmaNodes.Get (nCsma));
   serverApps.Start (Seconds (1.0));
@@ -193,20 +194,24 @@ Simulator::Run ();
 
 flowMonitor->SerializeToXmlFile("MO655Maria.xml", true, true);
 
-//Tipos de trafego
+//Falta os Tipos de trafego!!!!
 
-//##################
-//FOR clientApp
-  
-   for (int i=1; i < 10; i++)
-   { 
+//######### FOR ##########
 
-    ApplicationContainer clientApps = echoClient.Install (wifiStaNodes.Get (nWifi - i));
+   int valRand;   
+   
+   for(size_t i =1; i < nWifi ; i++)
+   {
+      valRand = rand() % nWifi;
+   
+
+    ApplicationContainer clientApps = echoClient.Install (wifiStaNodes.Get(valRand));//valor do FOR no nó
+    
     clientApps.Start (Seconds (2.0));
     clientApps.Stop (Seconds (10.0));
     
    }
-//##################
+//######### END FOR ##########
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
