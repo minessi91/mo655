@@ -55,31 +55,23 @@ int myRand(int min, int max){
   return value;
 }
 
-int 
-main (int argc, char *argv[])
-{
-  int no = 40; // Variável "no" que define o número de nós Ex: 10..20..30..40
+int main (int argc, char *argv[]){
   bool verbose = false;
   uint32_t nCsma = 1;
-  uint32_t nWifi = ((no * 20) / 100); //nWifi recebe o resultado da porcentagem de 20% em relação ao número de Nós
+  float time = 10.0;
+  uint32_t nWifi = 10;
   bool tracing = false;
 
   CommandLine cmd;
   cmd.AddValue ("nCsma", "Number of \"extra\" CSMA nodes/devices", nCsma);
+  cmd.AddValue ("time", "Number of \"extra\" CSMA nodes/devices", time);
   cmd.AddValue ("nWifi", "Number of wifi STA devices", nWifi);
   cmd.AddValue ("verbose", "Tell echo applications to log if true", verbose);
   cmd.AddValue ("tracing", "Enable pcap tracing", tracing);
-
   cmd.Parse (argc,argv);
-
-  // Check for valid number of csma or wifi nodes
-  // 250 should be enough, otherwise IP addresses 
-  // soon become an issue
-  if (nWifi > 250 || nCsma > 250)
-    {
-      std::cout << "Too many wifi or csma nodes, no more than 250 each." << std::endl;
-      return 1;
-    }
+  
+  uint32_t porcentagem = (nWifi * 0.2); // CALCULO DA PORCENTAGEM - NESSE CASO ESTOU UTILIZANDO 20%
+  printf("Minha porcentagem: %d\n", porcentagem);//Printf apenas para ver se está com parametro correto na porcentagem
 
   if (verbose)
     {
@@ -137,7 +129,7 @@ main (int argc, char *argv[])
   MobilityHelper mobility;
 
   for (size_t i = 0; i < nWifi; i++) {
-     uint32_t NodeX = myRand(0, 100);
+     uint32_t NodeX = myRand(0, 100); //O 100 é um tamanho bom!
      uint32_t NodeY = myRand(0, 100);
      Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
      //positionAlloc = CreateObject<ListPositionAllocator> ();
@@ -168,54 +160,30 @@ main (int argc, char *argv[])
   address.Assign (staDevices);
   address.Assign (apDevices);
 
-  UdpEchoServerHelper echoServer (9);//
+  UdpEchoServerHelper echoServer (9);
 
   ApplicationContainer serverApps = echoServer.Install (csmaNodes.Get (nCsma));
   serverApps.Start (Seconds (1.0));
-  serverApps.Stop (Seconds (10.0));
-
+  serverApps.Stop (Seconds (time)); //pega o tempo da variavel TIME
+//UDP
   UdpEchoClientHelper echoClient (csmaInterfaces.GetAddress (nCsma), 9);
-  //echoClient.SetAttribute ("MaxPackets", UintegerValue (20000));
   echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
+  echoClient.SetAttribute ("DataRate", StringValue("1500kb/s"));;
   echoClient.SetAttribute ("PacketSize", UintegerValue (512));
-  echoClient.SetAttribute ("DataRate", UintegerValue (512));
 
-// DataRate = 1Mbps 
-// 1Mbps 512kbps 
+  uint32_t nnode;
 
+  for ( uint32_t x=1 ; x <= porcentagem ; x++) {
+	  nnode = (nWifi - x);
+	  printf("%d\n", nnode);
+	  ApplicationContainer clientApps = echoClient.Install (wifiStaNodes.Get (nnode));
+	  clientApps.Start (Seconds (2.0));
+	  clientApps.Stop (Seconds (time));
+  }
 
-// Flow monitor
-Ptr<FlowMonitor> flowMonitor;
-FlowMonitorHelper flowHelper;
-flowMonitor = flowHelper.InstallAll();
+  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();//protocolo IP
 
-Simulator::Stop (Seconds(10));
-Simulator::Run ();
-
-flowMonitor->SerializeToXmlFile("MO655Maria.xml", true, true);
-
-//Falta os Tipos de trafego!!!!
-
-//######### FOR ##########
-
-   int valRand;   
-   
-   for(size_t i =1; i < nWifi ; i++)
-   {
-      valRand = rand() % nWifi;
-   
-
-    ApplicationContainer clientApps = echoClient.Install (wifiStaNodes.Get(valRand));//valor do FOR no nó
-    
-    clientApps.Start (Seconds (2.0));
-    clientApps.Stop (Seconds (10.0));
-    
-   }
-//######### END FOR ##########
-
-  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
-
-  Simulator::Stop (Seconds (10.0));
+  Simulator::Stop (Seconds (time));
 
   if (tracing == true)
     {
@@ -223,8 +191,16 @@ flowMonitor->SerializeToXmlFile("MO655Maria.xml", true, true);
       phy.EnablePcap ("third", apDevices.Get (0));
       csma.EnablePcap ("third", csmaDevices.Get (0), true);
     }
+//###### flow monitor ###########
+  Ptr<FlowMonitor> flowMonitor;
+  FlowMonitorHelper flowHelper;
+  flowMonitor = flowHelper.InstallAll();
 
+  Simulator::Stop (Seconds(time));
   Simulator::Run ();
+
+  flowMonitor->SerializeToXmlFile("MariaNS3.xml", true, true); //GERA um xml com o nome MariaNS3 na pasta ns-3.26
+
   Simulator::Destroy ();
   return 0;
 }
