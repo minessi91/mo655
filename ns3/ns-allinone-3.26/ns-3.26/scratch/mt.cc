@@ -59,7 +59,7 @@ int myRand(int min, int max){
   return value;
 }
 
-void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4InterfaceContainer &devicesIP, Ipv4InterfaceContainer &p2pdeviceIP,  uint32_t nWifi){
+void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4InterfaceContainer &devicesIP, Ipv4InterfaceContainer &p2pdeviceIP,  uint32_t nWifi, uint32_t porcentagem){
 
   double throughput = 0;
   double delay = 0;
@@ -76,10 +76,11 @@ void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4Inte
   Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
 
   for (map<FlowId, FlowMonitor::FlowStats>::const_iterator i=stats.begin (); i != stats.end (); ++i, count++){
-
     Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow (i->first);
     if (t.destinationAddress == p2pdeviceIP.GetAddress(0)){
       throughput = (i->second.txBytes * 8) / ((i->second.timeLastTxPacket - i->second.timeFirstTxPacket).GetSeconds());
+
+
 
 //if(printLog){
         cout << "Flowid              = " << i->first << endl;
@@ -97,7 +98,8 @@ void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4Inte
         cout << "Delay Sum           = " << i->second.delaySum.GetSeconds() << endl;
         cout << "Delay/Packet (mean) = " << i->second.delaySum.GetSeconds()/i->second.rxPackets << endl;
         cout << "Received Throughput = " << throughput << " bps" << " " << throughput/1024 << " kbps" << endl << endl;
-      }
+        cout << "Lost packets        = " << i->second.lostPackets/((i->second.timeLastTxPacket - i->second.timeFirstTxPacket).GetSeconds()) << endl;
+      
         throughput = ((throughput > 0) ? throughput : 0);
       sumThroughput += throughput;
       delay = i->second.delaySum.GetSeconds()/i->second.rxPackets;
@@ -138,10 +140,17 @@ void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4Inte
         }
       }
     }*/
+}
   }
-meanThroughput  = sumThroughput / nWifi;
-  meanDelayPackets /= nWifi;
-  meanLostPackets /= nWifi;
+  
+ cout << "#######Valor de meanThroughput ####### " << meanThroughput << endl;
+ cout << "#######Valor de sumThroughput  ####### " << sumThroughput << endl;
+ cout << "#######Valor de nWifi e porcentagem  ####### " << nWifi << " " << porcentagem << endl;
+ 
+
+  meanThroughput  = sumThroughput / porcentagem; 
+  meanDelayPackets /= porcentagem;
+  meanLostPackets /= porcentagem;
 
   cout << "Throughput (mean)   : " << meanThroughput/1024 << " kbps"<< endl;
   cout << "Delay Packets (mean): " << meanDelayPackets << endl;
@@ -179,10 +188,67 @@ meanThroughput  = sumThroughput / nWifi;
   fclose(f);
 }
 
+void tcp (uint32_t porcentagem, Ipv4InterfaceContainer &csmaInterfaces, NodeContainer &wifiStaNodes, NodeContainer &wifiApNode)
+{
+  ApplicationContainer serverApp;
+  ApplicationContainer sinkApp;
+
+  std::ostringstream ossOnTime;
+  ossOnTime << "ns3::ConstantRandomVariable[Constant=" << 0.001 << "]";
+  std::ostringstream ossOffTime;
+  ossOffTime << "ns3::ConstantRandomVariable[Constant=" << 0.001 << "]";
+
+  /* Install TCP/UDP Transmitter on the station */
+  for (uint32_t i = 0; i < porcentagem; i++){
+  /* Install TCP Receiver on the access point */
+    PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (csmaInterfaces.GetAddress(0), i+10000));
+    sinkApp = sinkHelper.Install (wifiStaNodes.Get(i));
+    sinkApp.Add (sinkHelper.Install (wifiApNode.Get(0)));
+    sinkApp.Start (Seconds (0.0));
+    OnOffHelper server ("ns3::TcpSocketFactory", (InetSocketAddress (csmaInterfaces.GetAddress(0), i+10000)));
+    server.SetAttribute ("PacketSize", UintegerValue (1484));
+    server.SetAttribute ("OnTime", StringValue (ossOnTime.str()));
+    server.SetAttribute ("OffTime", StringValue (ossOffTime.str()));
+    server.SetAttribute ("DataRate", StringValue ("512kbps"));
+    serverApp = server.Install (wifiStaNodes.Get(i));
+    serverApp.Start (Seconds (1));
+  }
+    serverApp.Stop(Seconds(60+1));
+}
+
+void udp(NodeContainer &wifiApNode, float time, Ipv4InterfaceContainer &csmaInterfaces, uint32_t porcentagem, uint32_t nWifi, NodeContainer &wifiStaNodes){
+
+UdpEchoServerHelper echoServer (9);
+//codigo a se observar/////////////////////
+  ApplicationContainer serverApps = echoServer.Install (wifiApNode.Get (1));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (time)); //pega o tempo da variavel TIME
+//TCP
+
+
+//UDP
+UdpEchoClientHelper echoClient (csmaInterfaces.GetAddress (0), 9);
+//cout << "linha 235" << endl;
+echoClient.SetAttribute ("Interval", TimeValue (Seconds (0.001)));
+echoClient.SetAttribute ("DataRate", StringValue ("512kbps"));
+echoClient.SetAttribute ("PacketSize", UintegerValue (484));
+//codigo a se observar////////////////////
+  uint32_t nnode;
+
+  for ( uint32_t x=1 ; x <= porcentagem ; x++) {
+	  nnode = (nWifi - x);
+	  printf("%d\n", nnode);
+	  ApplicationContainer clientApps = echoClient.Install (wifiStaNodes.Get (nnode));
+	  clientApps.Start (Seconds (2.0));
+	  clientApps.Stop (Seconds (time));
+  }
+
+}
+
 int main (int argc, char *argv[]){
   bool verbose = false;
   uint32_t nCsma = 1;
-  float time = 10.0;
+  float time = 60.0;
   uint32_t nWifi = 10;//alterar valores
   bool tracing = false;
 
@@ -218,8 +284,8 @@ int main (int argc, char *argv[]){
 //  csmaNodes.Create (nCsma);
 
   CsmaHelper csma;
-  csma.SetChannelAttribute ("DataRate", StringValue ("100Mbps"));
-  csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));
+//  csma.SetChannelAttribute ("DataRate", StringValue ("100Mbps"));
+//  csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));
 
   NodeContainer wifiStaNodes;
   wifiStaNodes.Create (nWifi);
@@ -280,28 +346,8 @@ int main (int argc, char *argv[]){
   Ipv4InterfaceContainer devicesInterfaces;
   devicesInterfaces = address.Assign (staDevices);
 
-  UdpEchoServerHelper echoServer (9);
-//codigo a se observar/////////////////////
-  ApplicationContainer serverApps = echoServer.Install (wifiApNode.Get (1));
-  serverApps.Start (Seconds (1.0));
-  serverApps.Stop (Seconds (time)); //pega o tempo da variavel TIME
-//UDP
-  UdpEchoClientHelper echoClient (csmaInterfaces.GetAddress (0), 9);
-cout << "linha 235" << endl;
-  echoClient.SetAttribute ("Interval", TimeValue (Seconds (1.0)));
-  echoClient.SetAttribute ("DataRate", StringValue ("512kbps"));
-  echoClient.SetAttribute ("PacketSize", UintegerValue (512));
-//codigo a se observar////////////////////
-  uint32_t nnode;
-
-  for ( uint32_t x=1 ; x <= porcentagem ; x++) {
-	  nnode = (nWifi - x);
-	  printf("%d\n", nnode);
-	  ApplicationContainer clientApps = echoClient.Install (wifiStaNodes.Get (nnode));
-	  clientApps.Start (Seconds (2.0));
-	  clientApps.Stop (Seconds (time));
-  }
-
+  //udp(wifiApNode, time, csmaInterfaces, porcentagem, nWifi, wifiStaNodes);
+  tcp (porcentagem, csmaInterfaces, wifiStaNodes, wifiApNode);
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();//protocolo IP
 
   Simulator::Stop (Seconds (time));
@@ -323,7 +369,7 @@ cout << "linha 235" << endl;
 
   flowMonitor->SerializeToXmlFile("MariaNS3.xml", true, true); //GERA um xml com o nome MariaNS3 na pasta ns-3.26
   
-  funcao_flow(flowHelper, flowMonitor, p2pInterfaces, csmaInterfaces, nWifi);
+  funcao_flow(flowHelper, flowMonitor, p2pInterfaces, csmaInterfaces, nWifi, porcentagem);
   Simulator::Destroy ();
   return 0;
 }
