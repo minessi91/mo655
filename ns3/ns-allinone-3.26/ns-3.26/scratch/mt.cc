@@ -59,8 +59,10 @@ int myRand(int min, int max){
   return value;
 }
 
+//################ funcao_flow #################
 void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4InterfaceContainer &devicesIP, Ipv4InterfaceContainer &p2pdeviceIP,  uint32_t nWifi, uint32_t porcentagem){
 
+//variaveis iniciando com zero
   double throughput = 0;
   double delay = 0;
   double sumThroughput = 0.0;
@@ -100,7 +102,7 @@ void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4Inte
         cout << "Received Throughput = " << throughput << " bps" << " " << throughput/1024 << " kbps" << endl << endl;
         cout << "Lost packets        = " << i->second.lostPackets/((i->second.timeLastTxPacket - i->second.timeFirstTxPacket).GetSeconds()) << endl;
       
-        throughput = ((throughput > 0) ? throughput : 0);
+      throughput = ((throughput > 0) ? throughput : 0);
       sumThroughput += throughput;
       delay = i->second.delaySum.GetSeconds()/i->second.rxPackets;
       delay = ((delay > 0) ? delay : 0);
@@ -188,6 +190,7 @@ void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4Inte
   fclose(f);
 }
 
+//################### TCP ###################
 void tcp (uint32_t porcentagem, Ipv4InterfaceContainer &csmaInterfaces, NodeContainer &wifiStaNodes, NodeContainer &wifiApNode)
 {
   ApplicationContainer serverApp;
@@ -216,23 +219,20 @@ void tcp (uint32_t porcentagem, Ipv4InterfaceContainer &csmaInterfaces, NodeCont
     serverApp.Stop(Seconds(60+1));
 }
 
+//################### UDP ###################
 void udp(NodeContainer &wifiApNode, float time, Ipv4InterfaceContainer &csmaInterfaces, uint32_t porcentagem, uint32_t nWifi, NodeContainer &wifiStaNodes){
 
-UdpEchoServerHelper echoServer (9);
-//codigo a se observar/////////////////////
+  UdpEchoServerHelper echoServer (9);
+
   ApplicationContainer serverApps = echoServer.Install (wifiApNode.Get (1));
   serverApps.Start (Seconds (1.0));
   serverApps.Stop (Seconds (time)); //pega o tempo da variavel TIME
-//TCP
 
-
-//UDP
 UdpEchoClientHelper echoClient (csmaInterfaces.GetAddress (0), 9);
-//cout << "linha 235" << endl;
 echoClient.SetAttribute ("Interval", TimeValue (Seconds (0.001)));
 echoClient.SetAttribute ("DataRate", StringValue ("512kbps"));
 echoClient.SetAttribute ("PacketSize", UintegerValue (484));
-//codigo a se observar////////////////////
+
   uint32_t nnode;
 
   for ( uint32_t x=1 ; x <= porcentagem ; x++) {
@@ -245,6 +245,7 @@ echoClient.SetAttribute ("PacketSize", UintegerValue (484));
 
 }
 
+//################### MAIN ###################
 int main (int argc, char *argv[]){
   bool verbose = false;
   uint32_t nCsma = 1;
@@ -359,7 +360,7 @@ int main (int argc, char *argv[]){
       csma.EnablePcap ("third", apDevices.Get (0), true);
     }
 
-//###### flow monitor ###########
+//################ FLOW MONITOR #################
   Ptr<FlowMonitor> flowMonitor;
   FlowMonitorHelper flowHelper;
   flowMonitor = flowHelper.InstallAll();
@@ -369,7 +370,7 @@ int main (int argc, char *argv[]){
 
   flowMonitor->SerializeToXmlFile("MariaNS3.xml", true, true); //GERA um xml com o nome MariaNS3 na pasta ns-3.26
   
-  funcao_flow(flowHelper, flowMonitor, p2pInterfaces, csmaInterfaces, nWifi, porcentagem);
+  funcao_flow(flowHelper, flowMonitor, p2pInterfaces, csmaInterfaces, nWifi, porcentagem);//Chama a função funcao_flow
   Simulator::Destroy ();
   return 0;
 }
