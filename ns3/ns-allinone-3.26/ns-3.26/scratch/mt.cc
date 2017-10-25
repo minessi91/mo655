@@ -60,7 +60,7 @@ int myRand(int min, int max){
 }
 
 //################ funcao_flow #################
-void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4InterfaceContainer &devicesIP, Ipv4InterfaceContainer &p2pdeviceIP,  uint32_t nWifi, uint32_t porcentagem){
+void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4InterfaceContainer &devicesIP, Ipv4InterfaceContainer &p2pdeviceIP,  uint32_t nWifi, uint32_t porcentagem, int tipo_trafego, size_t nearestNode, size_t farthestNode){
 
 //variaveis iniciando com zero
   double throughput = 0;
@@ -108,42 +108,24 @@ void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4Inte
       delay = ((delay > 0) ? delay : 0);
       meanDelayPackets += delay;
       meanLostPackets += i->second.lostPackets/((i->second.timeLastTxPacket - i->second.timeFirstTxPacket).GetSeconds());
-
-     /* if(!mobility){
+cout << nearestNode << " " << farthestNode << endl;
+cout << devicesIP.GetAddress(nearestNode) << endl;
         if(devicesIP.GetAddress(nearestNode) == t.sourceAddress){
-          if(traffic){
             std::stringstream ss;
-            ss <<prefix<<"_"<<"Nearest_node_cbr.csv";
+            ss <<nWifi<<"_"<<"mais_proximo.csv";
             f = fopen(ss.str().c_str(), "a");
-            fprintf(f, "%d;%.2f;%.2f;%.2f;%d\n", nNodes, dnearestNode, throughput/1024, delay, i->second.lostPackets);
-          }
-          else{
-            std::stringstream ss;
-            ss <<prefix<<"_"<<"Nearest_node_pulse.csv";
-            f = fopen(ss.str().c_str(), "a");
-            fprintf(f, "%d;%.2f;%.2f;%.2f;%d\n", nNodes, dnearestNode, throughput/1024, delay, i->second.lostPackets);
-          }
-          fclose(f);
+            fprintf(f, "%d;%.2f;%.2f;%d\n", nWifi, throughput/1024, delay, i->second.lostPackets);
+            fclose(f);
         }
- else if (devicesIP.GetAddress(farthestNode) == t.sourceAddress){
-          if(traffic){
+         else if (devicesIP.GetAddress(farthestNode) == t.sourceAddress){
             std::stringstream ss;
-            ss <<prefix<<"_"<<"Farthest_node_cbr.csv";
+            ss <<nWifi<<"_"<<"mais_long.csv";
             f = fopen(ss.str().c_str(), "a");
-            fprintf(f, "%d;%.2f;%.2f;%.2f;%d\n", nNodes, dfarthestNode, throughput/1024, delay, i->second.lostPackets);
-          }
-          else{
-            std::stringstream ss;
-            ss <<prefix<<"_"<<"Farthest_node_pulse.csv";
-            f = fopen(ss.str().c_str(), "a");
-            fprintf(f, "%d;%.2f;%.2f;%.2f;%d\n", nNodes, dfarthestNode, throughput/1024, delay, i->second.lostPackets);
-          }
-          fclose(f);
+            fprintf(f, "%d;%.2f;%.2f;%d\n", nWifi, throughput/1024, delay, i->second.lostPackets);
+            fclose(f);
         }
       }
-    }*/
-}
-  }
+    }
   
  cout << "#######Valor de meanThroughput ####### " << meanThroughput << endl;
  cout << "#######Valor de sumThroughput  ####### " << sumThroughput << endl;
@@ -154,39 +136,32 @@ void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4Inte
   meanDelayPackets /= porcentagem;
   meanLostPackets /= porcentagem;
 
-  cout << "Throughput (mean)   : " << meanThroughput/1024 << " kbps"<< endl;
-  cout << "Delay Packets (mean): " << meanDelayPackets << endl;
-  cout << "Lost Packets (mean) : " << meanLostPackets << endl;
+  cout << "Valor de Vazão (mean)   : " << meanThroughput/1024 << " kbps"<< endl;
+  cout << "Valor de atraso (mean): " << meanDelayPackets << endl;
+  cout << "Valor de perda (mean) : " << meanLostPackets << endl;
+
+
 
   // if udp/cbr
-  /*if(traffic){
-    if(mobility){
-      std::stringstream ss;
-      ss <<prefix<<"_"<<"RandomWalk_cbr.csv";
-      f = fopen(ss.str().c_str(), "a");
-      fprintf(f, "%d;%.2f;%.2f;%.2f;%.2f\n", nNodes, meanThroughput/1024, meanDelayPackets, meanLostPackets, sumThroughput);
-    }
-    else{
-      std::stringstream ss;
-      ss <<prefix<<"_"<<"ConstantPosition_cbr.csv";
-      f = fopen(ss.str().c_str(), "a");
-      fprintf(f, "%d;%.2f;%.2f;%.2f;%.2f\n", nNodes, meanThroughput/1024, meanDelayPackets, meanLostPackets, sumThroughput);
-    }
-  }
-  else{
-    if(mobility){
-      std::stringstream ss;
-      ss <<prefix<<"_"<<"RandomWalk_pulse.csv";
-      f = fopen(ss.str().c_str(), "a");
-      fprintf(f, "%d;%.2f;%.2f;%.2f;%.2f\n", nNodes, meanThroughput/1024, meanDelayPackets, meanLostPackets, sumThroughput);
-    }
-    else{*/
-      std::stringstream ss;
-      ss <<0<<"_"<<"ConstantPosition_udp_cbr.csv";
-      f = fopen(ss.str().c_str(), "a");
-      fprintf(f, "%d;%.2f;%.2f;%.2f;%.2f\n", nWifi, meanThroughput/1024, meanDelayPackets, meanLostPackets, sumThroughput);
-    /*}
-  }*/
+
+        std::stringstream ss;
+        switch(tipo_trafego){
+                case 0:
+                      ss <<nWifi<<"_"<<"tcp.csv";
+                break;
+                case 1:
+                     ss <<nWifi<<"_"<<"5050.csv";
+                break;
+                case 2:
+                     ss <<nWifi<<"_"<<"udp.csv";
+                break;
+                default:
+                return;
+        }
+        f = fopen(ss.str().c_str(), "a");
+        fprintf(f, "%d;%.2f;%.10f;%.2f;%.2f\n", nWifi, meanThroughput/1024, meanDelayPackets, meanLostPackets, sumThroughput);
+
+
   fclose(f);
 }
 
@@ -245,6 +220,62 @@ echoClient.SetAttribute ("PacketSize", UintegerValue (484));
 
 }
 
+void tcp_udp (NodeContainer &wifiApNode, float time, Ipv4InterfaceContainer &csmaInterfaces, uint32_t porcentagem, uint32_t nWifi, NodeContainer &wifiStaNodes)
+{
+
+  ApplicationContainer serverApp;
+  ApplicationContainer sinkApp;
+
+  std::ostringstream ossOnTime;
+  ossOnTime << "ns3::ConstantRandomVariable[Constant=" << 0.001 << "]";
+  std::ostringstream ossOffTime;
+  ossOffTime << "ns3::ConstantRandomVariable[Constant=" << 0.001 << "]";
+
+  /* Install TCP/UDP Transmitter on the station */
+  for (uint32_t i = 0; i < porcentagem/2; i++){
+  /* Install TCP Receiver on the access point */
+    PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (csmaInterfaces.GetAddress(0), i+10000));
+    sinkApp = sinkHelper.Install (wifiStaNodes.Get(i));
+    sinkApp.Add (sinkHelper.Install (wifiApNode.Get(0)));
+    sinkApp.Start (Seconds (0.0));
+    OnOffHelper server ("ns3::TcpSocketFactory", (InetSocketAddress (csmaInterfaces.GetAddress(0), i+10000)));
+    server.SetAttribute ("PacketSize", UintegerValue (1484));
+    server.SetAttribute ("OnTime", StringValue (ossOnTime.str()));
+    server.SetAttribute ("OffTime", StringValue (ossOffTime.str()));
+    server.SetAttribute ("DataRate", StringValue ("512kbps"));
+    serverApp = server.Install (wifiStaNodes.Get(i));
+    serverApp.Start (Seconds (1));
+  }
+    serverApp.Stop(Seconds(60+1));
+
+  UdpEchoServerHelper echoServer (9);
+
+  ApplicationContainer serverApps = echoServer.Install (wifiApNode.Get (0));
+  serverApps.Start (Seconds (1.0));
+  serverApps.Stop (Seconds (time)); //pega o tempo da variavel TIME
+
+UdpEchoClientHelper echoClient (csmaInterfaces.GetAddress (0), 9);
+echoClient.SetAttribute ("Interval", TimeValue (Seconds (0.001)));
+echoClient.SetAttribute ("DataRate", StringValue ("512kbps"));
+echoClient.SetAttribute ("PacketSize", UintegerValue (484));
+
+  uint32_t nnode;
+
+  for ( uint32_t x=1 ; x <= porcentagem/2 ; x++) {
+	  nnode = (nWifi - x);
+	  printf("%d\n", nnode);
+	  ApplicationContainer clientApps = echoClient.Install (wifiStaNodes.Get (nnode));
+	  clientApps.Start (Seconds (2.0));
+	  clientApps.Stop (Seconds (time));
+  }
+}
+
+double calcDistance (uint32_t x1, uint32_t y1, uint32_t x2, uint32_t y2){
+  return sqrt( (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
+}
+
+
+
 //################### MAIN ###################
 int main (int argc, char *argv[]){
   bool verbose = false;
@@ -252,6 +283,12 @@ int main (int argc, char *argv[]){
   float time = 60.0;
   uint32_t nWifi = 10;//alterar valores
   bool tracing = false;
+  int tipo_trafego=0;//0 tcp 1 50/50 2 udp
+
+size_t nearestNode = -1;
+size_t farthestNode = -1;
+double dnearestNode;
+double dfarthestNode;
 
   CommandLine cmd;
   cmd.AddValue ("nCsma", "Number of \"extra\" CSMA nodes/devices", nCsma);
@@ -282,6 +319,17 @@ int main (int argc, char *argv[]){
 
   NodeContainer wifiApNode;
   wifiApNode = p2pNodes.Get (1);
+
+ MobilityHelper mobilityh;
+  //List of points
+  Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
+  //Set apnode static
+  uint32_t ApX = 50;
+  uint32_t ApY = 50;
+  positionAlloc->Add (Vector (ApX, ApY, 0.0));
+  mobilityh.SetPositionAllocator (positionAlloc);
+  mobilityh.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobilityh.Install (wifiApNode);
 //  csmaNodes.Create (nCsma);
 
   CsmaHelper csma;
@@ -320,11 +368,31 @@ int main (int argc, char *argv[]){
   for (size_t i = 0; i < nWifi; i++) {
      uint32_t NodeX = myRand(0, 100); //O 100 é um tamanho bom!
      uint32_t NodeY = myRand(0, 100);
+  double result = calcDistance(ApX, ApY, NodeX, NodeY);
+
+
+if(i == 0){
+    nearestNode = i;
+    farthestNode = i;
+    dnearestNode = result;
+    dfarthestNode = result;
+  }
+  else{
+    if(result > dfarthestNode){
+      farthestNode = i;
+      dfarthestNode = result;
+    }
+    if(result < dnearestNode){
+      nearestNode = i;
+      dnearestNode = result;
+    }
+  }
      Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
      //positionAlloc = CreateObject<ListPositionAllocator> ();
      positionAlloc->Add (Vector (NodeX, NodeY, 0.0));
      mobility.SetPositionAllocator (positionAlloc);
      mobility.Install (wifiStaNodes.Get(i));
+
   }
 
   mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
@@ -347,8 +415,20 @@ int main (int argc, char *argv[]){
   Ipv4InterfaceContainer devicesInterfaces;
   devicesInterfaces = address.Assign (staDevices);
 
-  //udp(wifiApNode, time, csmaInterfaces, porcentagem, nWifi, wifiStaNodes);
-  tcp (porcentagem, csmaInterfaces, wifiStaNodes, wifiApNode);
+switch(tipo_trafego){
+        case 0:
+                tcp (porcentagem, csmaInterfaces, wifiStaNodes, wifiApNode);// Chama a função TCP
+        break;
+        case 1:
+                tcp_udp(wifiApNode, time, csmaInterfaces, porcentagem, nWifi, wifiStaNodes);//Chama a função TCP e UDP -50%
+        break;
+        case 2:
+                udp(wifiApNode, time, csmaInterfaces, porcentagem, nWifi, wifiStaNodes);//Chama a função UDP
+        break;
+        default:
+        return 0;
+}
+
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();//protocolo IP
 
   Simulator::Stop (Seconds (time));
@@ -368,9 +448,9 @@ int main (int argc, char *argv[]){
   Simulator::Stop (Seconds(time));
   Simulator::Run ();
 
-  flowMonitor->SerializeToXmlFile("MariaNS3.xml", true, true); //GERA um xml com o nome MariaNS3 na pasta ns-3.26
+  //flowMonitor->SerializeToXmlFile("MariaNS3.xml", true, true); //GERA um xml com o nome MariaNS3 na pasta ns-3.26
   
-  funcao_flow(flowHelper, flowMonitor, p2pInterfaces, csmaInterfaces, nWifi, porcentagem);//Chama a função funcao_flow
+  funcao_flow(flowHelper, flowMonitor, p2pInterfaces, csmaInterfaces, nWifi, porcentagem, tipo_trafego, nearestNode, farthestNode);//Chama a função funcao_flow
   Simulator::Destroy ();
   return 0;
 }
