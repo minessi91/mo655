@@ -76,9 +76,10 @@ void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4Inte
   FlowMonitor::FlowStatsContainer stats = monitor->GetFlowStats ();
 
   Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
-
+cout << "p2pdeviceIP  " << p2pdeviceIP.GetAddress(0) << endl;
   for (map<FlowId, FlowMonitor::FlowStats>::const_iterator i=stats.begin (); i != stats.end (); ++i, count++){
     Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow (i->first);
+cout << count << " t.destinationAddress " << t.destinationAddress << " t.sourceAddress " << t.sourceAddress << endl;
     if (t.destinationAddress == p2pdeviceIP.GetAddress(0)){
       throughput = (i->second.txBytes * 8) / ((i->second.timeLastTxPacket - i->second.timeFirstTxPacket).GetSeconds());
 
@@ -108,8 +109,8 @@ void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4Inte
       delay = ((delay > 0) ? delay : 0);
       meanDelayPackets += delay;
       meanLostPackets += i->second.lostPackets/((i->second.timeLastTxPacket - i->second.timeFirstTxPacket).GetSeconds());
-cout << nearestNode << " " << farthestNode << endl;
-cout << devicesIP.GetAddress(nearestNode) << endl;
+cout << "near " << nearestNode << " far " << farthestNode << endl;
+cout << "near device " << devicesIP.GetAddress(nearestNode) << " far d " << devicesIP.GetAddress(farthestNode) << " device " << t.sourceAddress << endl;
         if(devicesIP.GetAddress(nearestNode) == t.sourceAddress){
             std::stringstream ss;
             ss <<nWifi<<"_"<<"mais_proximo.csv";
@@ -363,40 +364,10 @@ double dfarthestNode;
   NetDeviceContainer apDevices;
   apDevices = wifi.Install (phy, mac, wifiApNode);
 
-  MobilityHelper mobility;
+  
 
-  for (size_t i = 0; i < nWifi; i++) {
-     uint32_t NodeX = myRand(0, 100); //O 100 é um tamanho bom!
-     uint32_t NodeY = myRand(0, 100);
-  double result = calcDistance(ApX, ApY, NodeX, NodeY);
-
-
-if(i == 0){
-    nearestNode = i;
-    farthestNode = i;
-    dnearestNode = result;
-    dfarthestNode = result;
-  }
-  else{
-    if(result > dfarthestNode){
-      farthestNode = i;
-      dfarthestNode = result;
-    }
-    if(result < dnearestNode){
-      nearestNode = i;
-      dnearestNode = result;
-    }
-  }
-     Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
-     //positionAlloc = CreateObject<ListPositionAllocator> ();
-     positionAlloc->Add (Vector (NodeX, NodeY, 0.0));
-     mobility.SetPositionAllocator (positionAlloc);
-     mobility.Install (wifiStaNodes.Get(i));
-
-  }
-
-  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-  mobility.Install (wifiApNode);
+/*  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
+  mobility.Install (wifiApNode);*/
 
   InternetStackHelper stack;
   stack.Install (p2pNodes.Get(0));
@@ -431,6 +402,38 @@ switch(tipo_trafego){
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();//protocolo IP
 
+MobilityHelper mobility;
+
+  for (size_t i = 0; i < nWifi; i++) {
+     uint32_t NodeX = myRand(0, 100); //O 100 é um tamanho bom!
+     uint32_t NodeY = myRand(0, 100);
+  double result = calcDistance(ApX, ApY, NodeX, NodeY);
+
+
+if(i == 0){
+    nearestNode = i;
+    farthestNode = i;
+    dnearestNode = result;
+    dfarthestNode = result;
+  }
+  else{
+    if(result > dfarthestNode){
+      farthestNode = i;
+      dfarthestNode = result;
+    }
+    if(result < dnearestNode){
+      nearestNode = i;
+      dnearestNode = result;
+    }
+  }
+     Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
+     //positionAlloc = CreateObject<ListPositionAllocator> ();
+     positionAlloc->Add (Vector (NodeX, NodeY, 0.0));
+     mobility.SetPositionAllocator (positionAlloc);
+     mobility.Install (wifiStaNodes.Get(i));
+
+  }
+
   Simulator::Stop (Seconds (time));
 
   if (tracing == true)
@@ -450,7 +453,7 @@ switch(tipo_trafego){
 
   //flowMonitor->SerializeToXmlFile("MariaNS3.xml", true, true); //GERA um xml com o nome MariaNS3 na pasta ns-3.26
   
-  funcao_flow(flowHelper, flowMonitor, p2pInterfaces, csmaInterfaces, nWifi, porcentagem, tipo_trafego, nearestNode, farthestNode);//Chama a função funcao_flow
+  funcao_flow(flowHelper, flowMonitor, devicesInterfaces, csmaInterfaces, nWifi, porcentagem, tipo_trafego, nearestNode, farthestNode);//Chama a função funcao_flow
   Simulator::Destroy ();
   return 0;
 }
