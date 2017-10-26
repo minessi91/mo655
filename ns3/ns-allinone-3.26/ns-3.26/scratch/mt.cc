@@ -38,15 +38,14 @@
 //                 AP
 //  *    *    *    *
 //  |    |    |    |    10.1.1.0
-// n5   n6   n7   n0 -------------- n1   n2   
-//                   point-to-point  |    |    
-//                                   ======
-//                                LAN 10.1.2.0
+// n5   n6   n7   n0 -------------- n1     
+//                   point-to-point  |      
+//                                   =
+//                              LAN 10.1.2.0
 
 using namespace ns3;
 using namespace std;
 
-//NS_LOG_COMPONENT_DEFINE ("ThirdScriptExample");
 
 int myRand(int min, int max){
 
@@ -60,15 +59,15 @@ int myRand(int min, int max){
 }
 
 //################ funcao_flow #################
-void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4InterfaceContainer &devicesIP, Ipv4InterfaceContainer &p2pdeviceIP,  uint32_t nWifi, uint32_t porcentagem, int tipo_trafego, size_t nearestNode, size_t farthestNode){
+void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4InterfaceContainer &devicesIP, Ipv4InterfaceContainer &p2pdeviceIP,  uint32_t nWifi, uint32_t porcentagem, int tipo_trafego, size_t nodenear, size_t nodefar){
 
 //variaveis iniciando com zero
-  double throughput = 0;
+  double taxaTransferencia = 0;
   double delay = 0;
-  double sumThroughput = 0.0;
-  double meanThroughput = 0.0;
-  double meanDelayPackets = 0.0;
-  double meanLostPackets = 0.0;
+  double somaTransferencia = 0.0;
+  double mediaVazao = 0.0;
+  double mediadelay = 0.0;
+  double mediaPerdaPacote = 0.0;
   int count = 0;
   FILE *f;
 
@@ -76,74 +75,67 @@ void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4Inte
   FlowMonitor::FlowStatsContainer stats = monitor->GetFlowStats ();
 
   Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
-cout << "p2pdeviceIP  " << p2pdeviceIP.GetAddress(0) << endl;
+
   for (map<FlowId, FlowMonitor::FlowStats>::const_iterator i=stats.begin (); i != stats.end (); ++i, count++){
     Ipv4FlowClassifier::FiveTuple t = classifier->FindFlow (i->first);
-cout << count << " t.destinationAddress " << t.destinationAddress << " t.sourceAddress " << t.sourceAddress << endl;
+
     if (t.destinationAddress == p2pdeviceIP.GetAddress(0)){
-      throughput = (i->second.txBytes * 8) / ((i->second.timeLastTxPacket - i->second.timeFirstTxPacket).GetSeconds());
+      taxaTransferencia = (i->second.txBytes * 8) / ((i->second.timeLastTxPacket - i->second.timeFirstTxPacket).GetSeconds());
 
 
-
-//if(printLog){
-        cout << "Flowid              = " << i->first << endl;
-        cout << "Source Address      = " << t.sourceAddress << endl;
-        cout << "Destination Address = " << t.destinationAddress << endl;
-        cout << "First Tx Packet     = " << i->second.timeFirstTxPacket.GetSeconds() << endl;
-        cout << "First Rx Packet     = " << i->second.timeFirstRxPacket.GetSeconds() << endl;
-        cout << "Last Tx Packet      = " << i->second.timeLastTxPacket.GetSeconds() << endl;
-        cout << "Last Rx Packet      = " << i->second.timeLastRxPacket.GetSeconds() << endl;
-        cout << "Tx Packets          = " << i->second.txPackets << endl;
-        cout << "RX Packets          = " << i->second.rxPackets << endl;
-        cout << "Lost Packets        = " << i->second.lostPackets << endl;
-        cout << "Tx Bytes            = " << i->second.txBytes << endl;
-        cout << "RX bytes            = " << i->second.rxBytes << endl;
-        cout << "Delay Sum           = " << i->second.delaySum.GetSeconds() << endl;
-        cout << "Delay/Packet (mean) = " << i->second.delaySum.GetSeconds()/i->second.rxPackets << endl;
-        cout << "Received Throughput = " << throughput << " bps" << " " << throughput/1024 << " kbps" << endl << endl;
-        cout << "Lost packets        = " << i->second.lostPackets/((i->second.timeLastTxPacket - i->second.timeFirstTxPacket).GetSeconds()) << endl;
-      
-      throughput = ((throughput > 0) ? throughput : 0);
-      sumThroughput += throughput;
+        cout << "Flowid                         = " << i->first << endl;
+        cout << "Endereço de partida            = " << t.sourceAddress << endl;
+        cout << "Endereço de destino            = " << t.destinationAddress << endl;
+        cout << "Primeiro pacote Tx             = " << i->second.timeFirstTxPacket.GetSeconds() << endl;
+        cout << "Primeiro pacote Rx             = " << i->second.timeFirstRxPacket.GetSeconds() << endl;
+        cout << "Ultimo pacote Tx               = " << i->second.timeLastTxPacket.GetSeconds() << endl;
+        cout << "Ultimo pacote Rx               = " << i->second.timeLastRxPacket.GetSeconds() << endl;
+        cout << "Pacotes  Tx                    = " << i->second.txPackets << endl;
+        cout << "Pacotes  RX                    = " << i->second.rxPackets << endl;
+        cout << "Pacotes perdidos               = " << i->second.lostPackets << endl;
+        cout << "Tx Bytes                       = " << i->second.txBytes << endl;
+        cout << "RX bytes                       = " << i->second.rxBytes << endl;
+        cout << "Atraso da soma                 = " << i->second.delaySum.GetSeconds() << endl;
+        cout << "Média de atraso do pacote      = " << i->second.delaySum.GetSeconds()/i->second.rxPackets << endl;
+        cout << "Taxa de transferencia recebida = " << taxaTransferencia << " bps" << " " << taxaTransferencia/1024 << " kbps" << endl << endl;
+            
+      taxaTransferencia = ((taxaTransferencia > 0) ? taxaTransferencia : 0);
+      somaTransferencia += taxaTransferencia;
       delay = i->second.delaySum.GetSeconds()/i->second.rxPackets;
       delay = ((delay > 0) ? delay : 0);
-      meanDelayPackets += delay;
-      meanLostPackets += i->second.lostPackets/((i->second.timeLastTxPacket - i->second.timeFirstTxPacket).GetSeconds());
-cout << "near " << nearestNode << " far " << farthestNode << endl;
-cout << "near device " << devicesIP.GetAddress(nearestNode) << " far d " << devicesIP.GetAddress(farthestNode) << " device " << t.sourceAddress << endl;
-        if(devicesIP.GetAddress(nearestNode) == t.sourceAddress){
+      mediadelay += delay;
+      mediaPerdaPacote += i->second.lostPackets/((i->second.timeLastTxPacket - i->second.timeFirstTxPacket).GetSeconds());
+
+        if(devicesIP.GetAddress(nodenear) == t.sourceAddress){
             std::stringstream ss;
             ss <<nWifi<<"_"<<"mais_proximo.csv";
             f = fopen(ss.str().c_str(), "a");
-            fprintf(f, "%d;%.2f;%.2f;%d\n", nWifi, throughput/1024, delay, i->second.lostPackets);
+            fprintf(f, "%d;%.2f;%.2f;%d\n", nWifi, taxaTransferencia/1024, delay, i->second.lostPackets);
             fclose(f);
         }
-         else if (devicesIP.GetAddress(farthestNode) == t.sourceAddress){
+         else if (devicesIP.GetAddress(nodefar) == t.sourceAddress){
             std::stringstream ss;
             ss <<nWifi<<"_"<<"mais_long.csv";
             f = fopen(ss.str().c_str(), "a");
-            fprintf(f, "%d;%.2f;%.2f;%d\n", nWifi, throughput/1024, delay, i->second.lostPackets);
+            fprintf(f, "%d;%.2f;%.2f;%d\n", nWifi, taxaTransferencia/1024, delay, i->second.lostPackets);
             fclose(f);
         }
       }
     }
   
- cout << "#######Valor de meanThroughput ####### " << meanThroughput << endl;
- cout << "#######Valor de sumThroughput  ####### " << sumThroughput << endl;
- cout << "#######Valor de nWifi e porcentagem  ####### " << nWifi << " " << porcentagem << endl;
  
 
-  meanThroughput  = sumThroughput / porcentagem; 
-  meanDelayPackets /= porcentagem;
-  meanLostPackets /= porcentagem;
+  mediaVazao  = somaTransferencia / porcentagem; 
+  mediadelay /= porcentagem;
+  mediaPerdaPacote /= porcentagem;
 
-  cout << "Valor de Vazão (mean)   : " << meanThroughput/1024 << " kbps"<< endl;
-  cout << "Valor de atraso (mean): " << meanDelayPackets << endl;
-  cout << "Valor de perda (mean) : " << meanLostPackets << endl;
+  cout << "Valor de Vazão    : " << mediaVazao/1024 << " kbps"<< endl;
+  cout << "Valor de Atraso   : " << mediadelay << endl;
+  cout << "Valor de Perda    : " << mediaPerdaPacote << endl;
 
 
 
-  // if udp/cbr
+  // Caso seja escolhido as opções 0 será tcp, opção 1 será 50/50 e opção 2 será udp
 
         std::stringstream ss;
         switch(tipo_trafego){
@@ -160,7 +152,7 @@ cout << "near device " << devicesIP.GetAddress(nearestNode) << " far d " << devi
                 return;
         }
         f = fopen(ss.str().c_str(), "a");
-        fprintf(f, "%d;%.2f;%.10f;%.2f;%.2f\n", nWifi, meanThroughput/1024, meanDelayPackets, meanLostPackets, sumThroughput);
+        fprintf(f, "%d;%.2f;%.10f;%.2f;%.2f\n", nWifi, mediaVazao/1024, mediadelay, mediaPerdaPacote, somaTransferencia);
 
 
   fclose(f);
@@ -232,9 +224,9 @@ void tcp_udp (NodeContainer &wifiApNode, float time, Ipv4InterfaceContainer &csm
   std::ostringstream ossOffTime;
   ossOffTime << "ns3::ConstantRandomVariable[Constant=" << 0.001 << "]";
 
-  /* Install TCP/UDP Transmitter on the station */
+  /* TCP/UDP */
   for (uint32_t i = 0; i < porcentagem/2; i++){
-  /* Install TCP Receiver on the access point */
+  /* Instala TCP no access point */
     PacketSinkHelper sinkHelper ("ns3::TcpSocketFactory", InetSocketAddress (csmaInterfaces.GetAddress(0), i+10000));
     sinkApp = sinkHelper.Install (wifiStaNodes.Get(i));
     sinkApp.Add (sinkHelper.Install (wifiApNode.Get(0)));
@@ -282,14 +274,14 @@ int main (int argc, char *argv[]){
   bool verbose = false;
   uint32_t nCsma = 1;
   float time = 60.0;
-  uint32_t nWifi = 10;//alterar valores
+  uint32_t nWifi = 10;//###### ALTERAR AQUI  ###########
   bool tracing = false;
-  int tipo_trafego=0;//0 tcp 1 50/50 2 udp
+  int tipo_trafego=0;//0 tcp; 1 50/50; 2 udp ###### ALTERAR AQUI  ###########
 
-size_t nearestNode = -1;
-size_t farthestNode = -1;
-double dnearestNode;
-double dfarthestNode;
+size_t nodenear = -1;
+size_t nodefar = -1;
+double dnodenear;
+double dnodefar;
 
   CommandLine cmd;
   cmd.AddValue ("nCsma", "Number of \"extra\" CSMA nodes/devices", nCsma);
@@ -299,7 +291,7 @@ double dfarthestNode;
   cmd.AddValue ("tracing", "Enable pcap tracing", tracing);
   cmd.Parse (argc,argv);
   
-  uint32_t porcentagem = (nWifi * 0.2); // CALCULO DA PORCENTAGEM - NESSE CASO ESTOU UTILIZANDO 20%
+  uint32_t porcentagem = (nWifi * 0.2); // CALCULO DA PORCENTAGEM - NESSE CASO ESTOU UTILIZANDO 20% - ###### ALTERAR AQUI para 10 20 30 e 40 ###########
   printf("Minha porcentagem: %d\n", porcentagem);//Printf apenas para ver se está com parametro correto na porcentagem
 
   if (verbose)
@@ -313,7 +305,7 @@ double dfarthestNode;
 
   PointToPointHelper pointToPoint;
   pointToPoint.SetDeviceAttribute ("DataRate", StringValue ("5Mbps"));
-  pointToPoint.SetChannelAttribute ("Delay", StringValue ("2ms"));
+  pointToPoint.SetChannelAttribute ("delay", StringValue ("2ms"));
 
   NetDeviceContainer p2pDevices;
   p2pDevices = pointToPoint.Install (p2pNodes);
@@ -322,9 +314,9 @@ double dfarthestNode;
   wifiApNode = p2pNodes.Get (1);
 
  MobilityHelper mobilityh;
-  //List of points
+  //Lista a posição
   Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
-  //Set apnode static
+  //Nó ap estático
   uint32_t ApX = 50;
   uint32_t ApY = 50;
   positionAlloc->Add (Vector (ApX, ApY, 0.0));
@@ -335,7 +327,7 @@ double dfarthestNode;
 
   CsmaHelper csma;
 //  csma.SetChannelAttribute ("DataRate", StringValue ("100Mbps"));
-//  csma.SetChannelAttribute ("Delay", TimeValue (NanoSeconds (6560)));
+//  csma.SetChannelAttribute ("delay", TimeValue (NanoSeconds (6560)));
 
   NodeContainer wifiStaNodes;
   wifiStaNodes.Create (nWifi);
@@ -351,23 +343,16 @@ double dfarthestNode;
 
   WifiMacHelper mac;
   Ssid ssid = Ssid ("ns-3-ssid");
-  mac.SetType ("ns3::StaWifiMac",
-               "Ssid", SsidValue (ssid),
-               "ActiveProbing", BooleanValue (false));
+  mac.SetType ("ns3::StaWifiMac", "Ssid", SsidValue (ssid), "ActiveProbing", BooleanValue (false));
 
   NetDeviceContainer staDevices;
   staDevices = wifi.Install (phy, mac, wifiStaNodes);
 
-  mac.SetType ("ns3::ApWifiMac",
-               "Ssid", SsidValue (ssid));
+  mac.SetType ("ns3::ApWifiMac", "Ssid", SsidValue (ssid));
 
   NetDeviceContainer apDevices;
   apDevices = wifi.Install (phy, mac, wifiApNode);
 
-  
-
-/*  mobility.SetMobilityModel ("ns3::ConstantPositionMobilityModel");
-  mobility.Install (wifiApNode);*/
 
   InternetStackHelper stack;
   stack.Install (p2pNodes.Get(0));
@@ -386,7 +371,8 @@ double dfarthestNode;
   Ipv4InterfaceContainer devicesInterfaces;
   devicesInterfaces = address.Assign (staDevices);
 
-switch(tipo_trafego){
+  switch(tipo_trafego)
+  {
         case 0:
                 tcp (porcentagem, csmaInterfaces, wifiStaNodes, wifiApNode);// Chama a função TCP
         break;
@@ -398,45 +384,50 @@ switch(tipo_trafego){
         break;
         default:
         return 0;
-}
+   }
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();//protocolo IP
 
-MobilityHelper mobility;
+  MobilityHelper mobility;
 
-  for (size_t i = 0; i < nWifi; i++) {
+  for (size_t i = 0; i < nWifi; i++) 
+  {
      uint32_t NodeX = myRand(0, 100); //O 100 é um tamanho bom!
      uint32_t NodeY = myRand(0, 100);
-  double result = calcDistance(ApX, ApY, NodeX, NodeY);
+     double result = calcDistance(ApX, ApY, NodeX, NodeY);
 
 
-if(i == 0){
-    nearestNode = i;
-    farthestNode = i;
-    dnearestNode = result;
-    dfarthestNode = result;
-  }
-  else{
-    if(result > dfarthestNode){
-      farthestNode = i;
-      dfarthestNode = result;
-    }
-    if(result < dnearestNode){
-      nearestNode = i;
-      dnearestNode = result;
-    }
-  }
+     if(i == 0)
+      {
+      nodenear = i;
+      nodefar = i;
+      dnodenear = result;
+      dnodefar = result;
+      }
+     else
+     {
+     if(result > dnodefar)
+      {
+      nodefar = i;
+      dnodefar = result;
+      }
+     if(result < dnodenear)
+      {
+      nodenear = i;
+      dnodenear = result;
+      }
+     }
      Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
      //positionAlloc = CreateObject<ListPositionAllocator> ();
      positionAlloc->Add (Vector (NodeX, NodeY, 0.0));
      mobility.SetPositionAllocator (positionAlloc);
      mobility.Install (wifiStaNodes.Get(i));
 
-  }
+   }
 
-  Simulator::Stop (Seconds (time));
+   Simulator::Stop (Seconds (time)); 
 
-  if (tracing == true)
+    if (tracing == true)
     {
       pointToPoint.EnablePcapAll ("third");
       phy.EnablePcap ("third", apDevices.Get (0));
@@ -444,16 +435,15 @@ if(i == 0){
     }
 
 //################ FLOW MONITOR #################
-  Ptr<FlowMonitor> flowMonitor;
-  FlowMonitorHelper flowHelper;
-  flowMonitor = flowHelper.InstallAll();
+    Ptr<FlowMonitor> flowMonitor;
+    FlowMonitorHelper flowHelper;
+    flowMonitor = flowHelper.InstallAll();
 
-  Simulator::Stop (Seconds(time));
-  Simulator::Run ();
+    Simulator::Stop (Seconds(time));
+    Simulator::Run ();
 
-  //flowMonitor->SerializeToXmlFile("MariaNS3.xml", true, true); //GERA um xml com o nome MariaNS3 na pasta ns-3.26
   
-  funcao_flow(flowHelper, flowMonitor, devicesInterfaces, csmaInterfaces, nWifi, porcentagem, tipo_trafego, nearestNode, farthestNode);//Chama a função funcao_flow
-  Simulator::Destroy ();
-  return 0;
+    funcao_flow(flowHelper, flowMonitor, devicesInterfaces, csmaInterfaces, nWifi, porcentagem, tipo_trafego, nodenear, nodefar);//Chama a função funcao_flow
+    Simulator::Destroy ();
+    return 0;
 }
