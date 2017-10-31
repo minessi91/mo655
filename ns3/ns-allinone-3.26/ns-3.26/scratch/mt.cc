@@ -86,7 +86,7 @@ void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4Inte
         cout << "Flowid                         = " << i->first << endl;
         cout << "Endereço de partida            = " << t.sourceAddress << endl;
         cout << "Endereço de destino            = " << t.destinationAddress << endl;
-        cout << "Primeiro pacote Tx             = " << i->second.timeFirstTxPacket.GetSeconds() << endl;
+        /*cout << "Primeiro pacote Tx             = " << i->second.timeFirstTxPacket.GetSeconds() << endl;
         cout << "Primeiro pacote Rx             = " << i->second.timeFirstRxPacket.GetSeconds() << endl;
         cout << "Ultimo pacote Tx               = " << i->second.timeLastTxPacket.GetSeconds() << endl;
         cout << "Ultimo pacote Rx               = " << i->second.timeLastRxPacket.GetSeconds() << endl;
@@ -97,7 +97,7 @@ void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4Inte
         cout << "RX bytes                       = " << i->second.rxBytes << endl;
         cout << "Atraso da soma                 = " << i->second.delaySum.GetSeconds() << endl;
         cout << "Média de atraso do pacote      = " << i->second.delaySum.GetSeconds()/i->second.rxPackets << endl;
-        cout << "Taxa de transferencia recebida = " << taxaTransferencia << " bps" << " " << taxaTransferencia/1024 << " kbps" << endl << endl;
+        cout << "Taxa de transferencia recebida = " << taxaTransferencia << " bps" << " " << taxaTransferencia/1024 << " kbps" << endl << endl;*/
             
       taxaTransferencia = ((taxaTransferencia > 0) ? taxaTransferencia : 0);
       somaTransferencia += taxaTransferencia;
@@ -105,7 +105,7 @@ void funcao_flow(FlowMonitorHelper &flowmon, Ptr<FlowMonitor> &monitor, Ipv4Inte
       delay = ((delay > 0) ? delay : 0);
       mediadelay += delay;
       mediaPerdaPacote += i->second.lostPackets/((i->second.timeLastTxPacket - i->second.timeFirstTxPacket).GetSeconds());
-
+        cout << "sa " << t.sourceAddress << " n " << devicesIP.GetAddress(nodenear) << " f " << devicesIP.GetAddress(nodefar) << endl;
         if(devicesIP.GetAddress(nodenear) == t.sourceAddress){
             std::stringstream ss;
             ss <<nWifi<<"_"<<"mais_proximo.csv";
@@ -274,7 +274,7 @@ int main (int argc, char *argv[]){
   bool verbose = false;
   uint32_t nCsma = 1;
   float time = 60.0;
-  uint32_t nWifi = 10;//###### ALTERAR AQUI  ###########
+  uint32_t nWifi = 30;//###### ALTERAR AQUI  ###########
   bool tracing = false;
   int tipo_trafego=0;//0 tcp; 1 50/50; 2 udp ###### ALTERAR AQUI  ###########
 
@@ -396,27 +396,72 @@ double dnodefar;
      uint32_t NodeY = myRand(0, 100);
      double result = calcDistance(ApX, ApY, NodeX, NodeY);
 
-
-     if(i == 0)
-      {
-      nodenear = i;
-      nodefar = i;
-      dnodenear = result;
-      dnodefar = result;
-      }
-     else
-     {
-     if(result > dnodefar)
-      {
-      nodefar = i;
-      dnodefar = result;
-      }
-     if(result < dnodenear)
-      {
-      nodenear = i;
-      dnodenear = result;
-      }
-     }
+cout << devicesInterfaces.GetAddress(i) << endl;
+  switch(tipo_trafego)
+  {
+        case 0:
+            if(i < porcentagem){
+             if(i == 0){
+                  nodenear = i;
+                  nodefar = i;
+                  dnodenear = result;
+                  dnodefar = result;
+             }
+             else {
+                if(result > dnodefar){
+                  nodefar = i;
+                  dnodefar = result;
+                }
+                if(result < dnodenear){
+                  nodenear = i;
+                  dnodenear = result;
+                }
+             }
+            }
+        break;
+        case 1:
+            if(i < porcentagem/2 || i >= (nWifi - porcentagem/2)){
+             if(i == 0){
+                  nodenear = i;
+                  nodefar = i;
+                  dnodenear = result;
+                  dnodefar = result;
+             }
+             else {
+                if(result > dnodefar){
+                  nodefar = i;
+                  dnodefar = result;
+                }
+                if(result < dnodenear){
+                  nodenear = i;
+                  dnodenear = result;
+                }
+             }
+            }
+        break;
+        case 2:
+            if(i >= (nWifi - porcentagem)){
+             if(i == (nWifi - porcentagem)){
+                  nodenear = i;
+                  nodefar = i;
+                  dnodenear = result;
+                  dnodefar = result;
+             }
+             else {
+                if(result > dnodefar){
+                  nodefar = i;
+                  dnodefar = result;
+                }
+                if(result < dnodenear){
+                  nodenear = i;
+                  dnodenear = result;
+                }
+             }
+            }
+        break;
+        default:
+        return 0;
+   }
      Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator> ();
      //positionAlloc = CreateObject<ListPositionAllocator> ();
      positionAlloc->Add (Vector (NodeX, NodeY, 0.0));
